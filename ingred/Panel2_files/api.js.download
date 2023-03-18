@@ -1,0 +1,123 @@
+class Api{
+    constructor() {
+        this.host = "";
+        this.type = 0;
+        this.ws = null;
+        this.wsConnected = false;
+        this.wsRequests = [];
+        this.lastMsg = "";
+        this.lastTimestamp = 0;
+        this.onReceiveMsg;
+        this.token = "";
+    }
+
+    createUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    connect(host,token,trType)
+    {
+        var _this = this;
+        _this.token = token;
+        _this.host = host;
+        _this.type = trType;
+        let urlToken = this.host + "/" + this.token;
+        this.ws = new WebSocket(urlToken);
+        this.ws.onopen = function (event) {
+            _this.onEventOpen();
+        };
+        this.ws.onmessage = function (event) {
+          _this.onEventMsgReceived(event.data);
+          _this.onReceivedWsMsg(event.data);
+        };
+        this.ws.onerror = function (event) {
+          _this.onEventError();
+        };
+        this.ws.onclose = function (event) {
+	        _this.onEventClose();
+        };
+    }
+    onEventMsgReceived(){}
+    onEventOpen(){}
+    onEventError(){}
+    onEventClose(){}
+
+    onReceivedWsMsg(data)
+    {
+        let json = JSON.parse(data);
+        //Tks.log("response text msg: " + json.uuid);
+        if ( json != undefined )
+        {
+            if ( this.onReceivedMsg != undefined )
+            {
+                this.onReceivedMsg(json);
+            }
+            // call callback function
+            if ( json.uuid != undefined )
+            {
+                if ( this.wsRequests[json.uuid] != undefined )
+                {
+                    var func = this.wsRequests[json.uuid];
+                    //func(json);
+                    this.wsRequests[json.uuid] = null;
+                }
+            }
+        }
+    }
+    
+    approvedAllVerified(idag,bids,onDone)
+    {
+      let params = {};
+      params.msg = "approvedAllVerified";
+      if(idag!=undefined){
+    	  params.data = { type: this.type , bids: bids , idag: idag };
+      }     
+      this.send(params,onDone);
+    }
+
+    getTrxsList(bids,onDone)
+    {
+      let params = {};
+      params.msg = "GetList";
+      if(bids!=undefined){
+    	  params.data = { type: this.type , bids: bids };
+      }     
+      this.send(params,onDone);
+    }
+
+    processTrx(type,id,note,onDone)
+    {
+      let params = {};
+      params.msg = "UpdateTrx";
+      //approve from depo shouldn't send note
+      if(note!=undefined){
+    	  params.data = { action: type , id: id, note:note };
+      }else{
+    	  params.data = { action: type , id: id};
+      }
+    
+      this.send(params,onDone);
+    }
+    ping()
+    {
+      let params = {};
+      params.msg = "ping";
+      this.send(params);
+    }
+
+    send(params,onDone)
+    {
+        if ( this.ws.readyState != WebSocket.OPEN )
+          return;
+        this.lastMsg = params.msg;
+        params.token = this.token;
+        params.uuid = this.createUUID();
+        if ( onDone != undefined )
+            this.wsRequests[params.uuid] = onDone;
+        this.ws.send(JSON.stringify(params));
+    }
+
+}

@@ -1,0 +1,24 @@
+function dateTimeFormat(value){
+	if ( value == 'undefined' || value == null ) {
+		dateString = '-' ;
+	}else{
+		var data = value.split('.');
+		var separate_date = data[0].split(' ');
+		var date_time = separate_date[0].split('-');
+		var date_time_new = date_time[1]+'/'+date_time[2]+'/'+date_time[0]+' '+separate_date[1];
+		
+		var temp = new Date(date_time_new);
+		var dateStr = padStr(temp.getDate()) + '-'+
+					    padStr(temp.getMonth()+1) + '-'+
+					    padStr(temp.getFullYear()) + ' '+
+					    padStr(temp.getHours()) + ':'+
+					    padStr(temp.getMinutes()) + ':'+
+					    padStr(temp.getSeconds());
+		var dateString = dateStr  ;
+	}
+	return dateString;
+}
+
+function padStr(i) {
+    return (i < 10) ? "0" + i : "" + i;
+}
